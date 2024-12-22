@@ -35,17 +35,11 @@ required_files = [
     't10k-labels-idx1-ubyte'
 ]
 
-# 检查文件
-for file_name in required_files:
-    file_path = os.path.join(data_path, file_name)
-    if not os.path.exists(file_path):
-        print(f"缺少文件: {file_path}")
-        exit(1)
-    else:
-        print(f"文件存在: {file_path}")
-        print(f"文件大小: {os.path.getsize(file_path)} bytes")
-
-print("\n所有数据文件已就绪，开始加载数据集...")
+print("\n检查数据集...")
+if not all(os.path.exists(os.path.join(data_path, f)) for f in required_files):
+    print("数据集不存在，开始下载...")
+else:
+    print("数据集已存在，跳过下载")
 
 # 定义数据转换
 transform = transforms.Compose([
@@ -57,14 +51,14 @@ transform = transforms.Compose([
 train_dataset = torchvision.datasets.FashionMNIST(
     root=root_path,
     train=True, 
-    download=False,
+    download=True,
     transform=transform
 )
 
 test_dataset = torchvision.datasets.FashionMNIST(
     root=root_path,
     train=False, 
-    download=False,
+    download=True,
     transform=transform
 )
 
