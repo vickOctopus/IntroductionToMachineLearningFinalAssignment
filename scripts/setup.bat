@@ -7,6 +7,13 @@ call venv\Scripts\activate.bat
 
 echo Installing dependencies...
 python -m pip install --upgrade pip
+
+:: 从官网下载PyTorch（避免代理问题）
+echo Installing PyTorch...
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+:: 安装其他依赖
+echo Installing other dependencies...
 pip install -r requirements.txt
 
 echo Creating necessary directories...
