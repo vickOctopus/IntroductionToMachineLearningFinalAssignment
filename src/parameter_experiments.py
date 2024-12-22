@@ -210,7 +210,7 @@ class EarlyStopping:
             self.best_loss = val_loss
             self.counter = 0
 
-def train_and_evaluate(model, optimizer, lr=0.001, epochs=3):
+def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
     """训练和评估模型"""
     start_time = time.time()
     epoch_times = []
@@ -221,8 +221,8 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=3):
     criterion = nn.CrossEntropyLoss()
     optimizer = optimizer(model.parameters(), lr=lr)
     
-    # 初始化早停
-    early_stopping = EarlyStopping(patience=2, min_delta=0.001)  # 使用更激进���早停策略
+    # 初始化早停，增加patience
+    early_stopping = EarlyStopping(patience=3, min_delta=0.001)  # 从2增加到3
     
     # 训练
     for epoch in range(epochs):
@@ -324,10 +324,13 @@ def experiment():
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=4)
     
-    # 直接进行分析，但不打印结果
-    from .analyze import create_performance_table, save_results_table
-    df = create_performance_table(results)
-    save_results_table(df)
+    # 进行分析
+    from .analyze import create_performance_table, save_results_table, create_complexity_analysis
+    df_perf = create_performance_table(results)
+    save_results_table(df_perf)
+    
+    # 生成复杂度分析
+    df_complexity = create_complexity_analysis(results)
     
     return results, results_file
 

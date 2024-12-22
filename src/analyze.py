@@ -63,16 +63,77 @@ def create_performance_table(results):
 
 def save_results_table(df):
     """保存结果表格到experiment_logs目录"""
-    # 使用固定的文件名，存到log_dir
-    csv_path = os.path.join(log_dir, 'performance_table.csv')
+    # 使用"性能分析"作为文件名
+    csv_path = os.path.join(log_dir, 'performance_analysis.csv')
     df.to_csv(csv_path, index=False)
     
     # 同时保存为Markdown格式以便查看
-    md_path = os.path.join(log_dir, 'performance_table.md')
+    md_path = os.path.join(log_dir, 'performance_analysis.md')
     with open(md_path, 'w') as f:
+        f.write("# Performance Analysis\n\n")
         f.write(df.to_markdown())
     
     return csv_path, md_path
+
+def create_complexity_analysis(results):
+    """Generate model complexity analysis table"""
+    records = []
+    
+    for model_name, result in results.items():
+        try:
+            _, activation, conv_layers, lr = model_name.split('_')
+            
+            # Extract metrics
+            efficiency = result['efficiency']
+            training_eff = efficiency['training_efficiency']
+            
+            # 确保所有数值都是数字类型
+            params_count = int(efficiency['params_count'])
+            inference_speed = float(efficiency['inference_speed'])
+            training_time = float(training_eff['total_train_time'])
+            avg_inference_time = float(efficiency['avg_inference_time'])
+            convergence_epoch = int(training_eff['convergence_epoch'])
+            accuracy = float(result['accuracy'])
+            
+            record = {
+                'Model Config': f"{activation}-{conv_layers}layers-lr{lr}",
+                'Parameters': params_count,  # 不预先格式化，让pandas处理
+                'Inference Speed (samples/s)': inference_speed,
+                'Training Time (s)': training_time,
+                'Avg Inference Time (ms/sample)': avg_inference_time * 1000,
+                'Convergence Epoch': convergence_epoch,  # 保持为整数
+                'Accuracy': accuracy
+            }
+            records.append(record)
+        except Exception as e:
+            print(f"Error processing model {model_name}: {e}")
+            continue
+    
+    # Create DataFrame and sort
+    df = pd.DataFrame(records)
+    df = df.sort_values('Accuracy', ascending=False)
+    
+    # 格式化数值列
+    df['Parameters'] = df['Parameters'].apply(lambda x: f"{x:,}")
+    df['Inference Speed (samples/s)'] = df['Inference Speed (samples/s)'].apply(lambda x: f"{x:.2f}")
+    df['Training Time (s)'] = df['Training Time (s)'].apply(lambda x: f"{x:.2f}")
+    df['Avg Inference Time (ms/sample)'] = df['Avg Inference Time (ms/sample)'].apply(lambda x: f"{x:.2f}")
+    df['Convergence Epoch'] = df['Convergence Epoch'].astype(int)  # 确保是整数
+    df['Accuracy'] = df['Accuracy'].apply(lambda x: f"{x:.4f}")
+    
+    # Save results
+    csv_path = os.path.join(log_dir, 'complexity_analysis.csv')
+    df.to_csv(csv_path, index=False)
+    
+    md_path = os.path.join(log_dir, 'complexity_analysis.md')
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write("# Model Complexity Analysis\n\n")
+        f.write(df.to_markdown(index=False))
+    
+    print(f"\nComplexity analysis saved to:")
+    print(f"CSV: {csv_path}")
+    print(f"Markdown: {md_path}")
+    return df
 
 def main():
     # 使用固定的结果文件
