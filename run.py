@@ -13,6 +13,11 @@ def ensure_venv():
     project_root = Path(__file__).parent.absolute()
     venv_path = project_root / 'venv'
     
+    if sys.platform == 'win32':
+        python_path = venv_path / 'Scripts' / 'python.exe'
+    else:
+        python_path = venv_path / 'bin' / 'python3'
+    
     if not venv_path.exists():
         print("错误: 未找到虚拟环境")
         print("请先运行 setup.sh (Linux/macOS) 或 setup.bat (Windows) 创建虚拟环境")
@@ -20,11 +25,6 @@ def ensure_venv():
     
     in_venv = hasattr(sys, 'real_prefix') or sys.base_prefix != sys.prefix
     if not in_venv:
-        if sys.platform == 'win32':
-            python_path = venv_path / 'Scripts' / 'python.exe'
-        else:
-            python_path = venv_path / 'bin' / 'python3'
-        
         if not python_path.exists():
             print("错误: 虚拟环境似乎已损坏，请重新运行 setup.sh 或 setup.bat")
             sys.exit(1)

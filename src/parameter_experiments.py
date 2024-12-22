@@ -13,8 +13,13 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '..'))
 log_dir = os.path.join(project_root, 'experiment_logs')
 
-# 检测并使用MPS（用于Mac）或CPU
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+# 检测可用设备
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.backends.mps.is_available():  # Mac的Metal加速
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 print(f"使用设备: {device}")
 
 def log_training(log_file, message):
@@ -221,7 +226,7 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
     criterion = nn.CrossEntropyLoss()
     optimizer = optimizer(model.parameters(), lr=lr)
     
-    # 初始化早停，增加patience
+    # 初始化早停��增加patience
     early_stopping = EarlyStopping(patience=3, min_delta=0.001)  # 从2增加到3
     
     # 训练
@@ -329,7 +334,7 @@ def experiment():
     df_perf = create_performance_table(results)
     save_results_table(df_perf)
     
-    # 生成复杂度分析
+    # ���成复杂度分析
     df_complexity = create_complexity_analysis(results)
     
     return results, results_file
