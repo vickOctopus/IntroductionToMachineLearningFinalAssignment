@@ -60,7 +60,7 @@ def main():
             print("\n训练完成！")
             
         elif mode == 'experiment':
-            from src.model_variants import experiment
+            from src.parameter_experiments import experiment
             print("\n开始网络参数实验...")
             results, results_file = experiment()
             print(f"\n实验结果已保存到: {results_file}")

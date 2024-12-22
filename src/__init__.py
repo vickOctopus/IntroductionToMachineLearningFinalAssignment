@@ -1,5 +1,5 @@
 from .fashion_mnist import CNN, train, test, classes
-from .model_variants import BaseCNN, experiment
+from .parameter_experiments import BaseCNN, experiment
 from .visualize import plot_loss_curves
 from .analyze import create_performance_table, save_results_table
 

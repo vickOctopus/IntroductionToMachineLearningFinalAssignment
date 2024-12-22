@@ -69,7 +69,7 @@ test_dataset = torchvision.datasets.FashionMNIST(
 )
 
 # 修改数据加载部分
-train_size = int(0.5 * len(train_dataset))  # 使用50%的数据进行训练
+train_size = int(0.8 * len(train_dataset))  # 使用80%的数据进行训练
 val_size = int(0.1 * len(train_dataset))    # 使用10%的数据作为验证集
 train_dataset, val_dataset, _ = torch.utils.data.random_split(
     train_dataset, 
@@ -82,7 +82,7 @@ train_loader = torch.utils.data.DataLoader(
     train_dataset, 
     batch_size=128,
     shuffle=True,
-    pin_memory=True,  # 加快数据传输到GPU的速度
+    pin_memory=True,  # 加快数据传输到GPU的度
     num_workers=4     # 使用多个工作进程加载数据
 )
 
@@ -107,9 +107,13 @@ classes = ['T-shirt/Top', 'Trouser', 'Pullover', 'Dress', 'Coat',
            'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle Boot']
 
 print("数据集加载完成！")
-print(f"训练集大小: {len(train_dataset)} (原始数据的50%)")
+print(f"训练集大小: {len(train_dataset)} (原始数据的80%)")
 print(f"验证集大小: {len(val_dataset)} (原始数据的10%)")
 print(f"测试集大小: {len(test_dataset)}")
+
+# 在文件开头添加设备检测
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+print(f"使用设备: {device}")
 
 # 定义CNN模型
 class CNN(nn.Module):
@@ -134,14 +138,14 @@ class CNN(nn.Module):
         return x
 
 # 创建模型实例
-model = CNN()
+model = CNN().to(device)  # 将模型移到设备
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 print("Model structure:")
 print(model)
 
-# 在test函数前添加evaluate函��
+# 在test函数前添加evaluate函数
 def evaluate(model, data_loader):
     """评估模型在给定数据集上的性能"""
     model.eval()
@@ -152,6 +156,7 @@ def evaluate(model, data_loader):
     with torch.no_grad():
         for data in data_loader:
             images, labels = data
+            images, labels = images.to(device), labels.to(device)  # 将数据移到设备
             outputs = model(images)
             loss = criterion(outputs, labels)
             
@@ -196,7 +201,6 @@ def train(epochs=5):
     early_stopping = EarlyStopping(patience=3, min_delta=0.001)
     
     for epoch in range(epochs):
-        # 训练阶段
         model.train()
         running_loss = 0.0
         correct = 0
@@ -206,6 +210,7 @@ def train(epochs=5):
         
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)  # 将数据移到设备
             optimizer.zero_grad()
             
             outputs = model(inputs)

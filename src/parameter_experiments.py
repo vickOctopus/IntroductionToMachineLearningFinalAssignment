@@ -5,7 +5,6 @@ from .fashion_mnist import train_loader, test_loader
 import json
 from datetime import datetime
 import os
-from .visualize import plot_loss_curves
 import time
 import numpy as np
 
@@ -81,7 +80,7 @@ EXPERIMENTS = {
         'Adam': optim.Adam  # 保持使用Adam优化器
     },
     'activations': ['relu', 'leakyrelu'],  # 修改这里：去掉下划线
-    'conv_layers': [2, 3, 4]  # 三种��络深度
+    'conv_layers': [2, 3, 4]  # 三种络深度
 }
 
 def calculate_model_complexity(model):
@@ -316,7 +315,7 @@ def experiment():
                                               EXPERIMENTS['optimizers']['Adam'], 
                                               lr=lr)
                     results[model_name] = result
-                    print(f"实验完��: {model_name}, 准确率: {result['accuracy']:.4f}")
+                    print(f"实验完成: {model_name}, 准确率: {result['accuracy']:.4f}")
                 except Exception as e:
                     print(f"实验失败: {model_name}")
                     print(f"错误信息: {e}")
@@ -325,14 +324,10 @@ def experiment():
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=4)
     
-    # 直接进行分析
+    # 直接进行分析，但不打印结果
     from .analyze import create_performance_table, save_results_table
     df = create_performance_table(results)
     save_results_table(df)
-    
-    print("\n性能分析果:")
-    print("\nTop 5 Configurations:")
-    print(df.head().to_markdown())
     
     return results, results_file
 
