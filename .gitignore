@@ -1,0 +1,21 @@
+# 虚拟环境
+venv/
+env/
+.env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 数据和模型文件
+data/
+models/
+
+# IDE配置
+.idea/
+.vscode/
+*.swp
+.DS_Store

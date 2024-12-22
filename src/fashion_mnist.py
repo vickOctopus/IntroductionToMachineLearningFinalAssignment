@@ -1,0 +1,267 @@
+
+import torch
+import torchvision
+import torchvision.transforms as transforms
+import torch.nn as nn
+import torch.optim as optim
+import os
+import numpy as np
+
+# 更新路径计算
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..'))
+data_path = os.path.join(project_root, 'data', 'FashionMNIST', 'raw')
+root_path = os.path.join(project_root, 'data')
+models_dir = os.path.join(project_root, 'models')
+
+print(f"当前目录: {current_dir}")
+print(f"数据目录: {data_path}")
+print(f"根目录: {root_path}")
+
+# 检查必需的文件是否存在
+required_files = [
+    'train-images-idx3-ubyte',
+    'train-labels-idx1-ubyte',
+    't10k-images-idx3-ubyte',
+    't10k-labels-idx1-ubyte'
+]
+
+# 检查文件
+for file_name in required_files:
+    file_path = os.path.join(data_path, file_name)
+    if not os.path.exists(file_path):
+        print(f"缺少文件: {file_path}")
+        exit(1)
+    else:
+        print(f"文件存在: {file_path}")
+        print(f"文件大小: {os.path.getsize(file_path)} bytes")
+
+print("\n所有数据文件已就绪，开始加载数据集...")
+
+# 定义数据转换
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+
+# 加载训练集和测试集
+train_dataset = torchvision.datasets.FashionMNIST(
+    root=root_path,
+    train=True, 
+    download=False,
+    transform=transform
+)
+
+test_dataset = torchvision.datasets.FashionMNIST(
+    root=root_path,
+    train=False, 
+    download=False,
+    transform=transform
+)
+
+# 创建数据加载器
+train_loader = torch.utils.data.DataLoader(
+    train_dataset, 
+    batch_size=64, 
+    shuffle=True
+)
+
+test_loader = torch.utils.data.DataLoader(
+    test_dataset, 
+    batch_size=64, 
+    shuffle=False
+)
+
+# 定义类别名称
+classes = ['T-shirt/Top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+           'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle Boot']
+
+print("数据集加载完成！")
+print(f"训练集大小: {len(train_dataset)}")
+print(f"测试集大小: {len(test_dataset)}")
+
+# 定义CNN模型
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        # 第一个卷积层
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
+        self.pool = nn.MaxPool2d(2, 2)
+        # 第二个卷积层
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
+        # 全连接层
+        self.fc1 = nn.Linear(64 * 4 * 4, 512)
+        self.fc2 = nn.Linear(512, 10)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.conv1(x)))
+        x = self.pool(self.relu(self.conv2(x)))
+        x = x.view(-1, 64 * 4 * 4)
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+# 创建模型实例
+model = CNN()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+print("Model structure:")
+print(model)
+
+# 在test函数前添加evaluate函数
+def evaluate(model, data_loader):
+    """评估模型在给定数据集上的性能"""
+    model.eval()
+    total_loss = 0
+    correct = 0
+    total = 0
+    
+    with torch.no_grad():
+        for data in data_loader:
+            images, labels = data
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            
+            total_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    
+    avg_loss = total_loss / len(data_loader)
+    accuracy = correct / total
+    return avg_loss, accuracy
+
+# 修改train函数中的数据收集部分
+def train(epochs=5):
+    """训练函数"""
+    train_losses = []
+    train_accs = []
+    val_losses = []
+    val_accs = []
+    
+    model.train()
+    for epoch in range(epochs):
+        running_loss = 0.0
+        correct = 0
+        total = 0
+        epoch_loss = 0.0
+        
+        for i, data in enumerate(train_loader, 0):
+            inputs, labels = data
+            optimizer.zero_grad()
+            
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item()
+            epoch_loss += loss.item()
+            
+            # 计算训练准确率
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            
+            # 每100个batch打印一次信息
+            if i % 100 == 99:
+                print(f'[Epoch {epoch + 1}, Batch {i + 1}] '
+                      f'Loss: {running_loss / 100:.3f}, '
+                      f'Accuracy: {100 * correct / total:.2f}%')
+                running_loss = 0.0
+        
+        # 每个epoch结束后收集数据
+        train_losses.append(epoch_loss / len(train_loader))
+        train_accs.append(correct / total)
+        
+        # 验证集评估
+        val_loss, val_acc = evaluate(model, test_loader)
+        val_losses.append(val_loss)
+        val_accs.append(val_acc)
+        
+        print(f'Epoch {epoch + 1} - '
+              f'Train Loss: {train_losses[-1]:.3f}, '
+              f'Train Acc: {train_accs[-1]:.3f}, '
+              f'Val Loss: {val_loss:.3f}, '
+              f'Val Acc: {val_acc:.3f}')
+    
+    # 保存训练结果
+    save_results(model, train_losses, train_accs, val_losses, val_accs)
+    
+    return train_losses, train_accs, val_losses, val_accs
+
+# 在train函数后添加test函数
+def test():
+    """测试函数：评估模型在测试集上的性能"""
+    model.eval()
+    correct = 0
+    total = 0
+    class_correct = [0] * 10
+    class_total = [0] * 10
+    
+    with torch.no_grad():
+        for data in test_loader:
+            images, labels = data
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            
+            # 计算每个类别的准确率
+            c = (predicted == labels).squeeze()
+            for i in range(len(labels)):
+                label = labels[i]
+                class_correct[label] += c[i].item()
+                class_total[label] += 1
+
+    print(f'\nOverall test accuracy: {100 * correct / total:.2f}%')
+    
+    # 打印每个类别的准确率
+    for i in range(10):
+        print(f'{classes[i]}: {100 * class_correct[i] / class_total[i]:.2f}%')
+
+# 在文件开头添加模型保存路径
+if not os.path.exists(models_dir):
+    os.makedirs(models_dir)
+
+# 修改保存部分的代码
+def save_results(model, train_losses, train_accs, val_losses, val_accs):
+    """保存模型和训练结果"""
+    # 确保模型保存目录存在
+    os.makedirs(models_dir, exist_ok=True)
+    
+    # 构建保存路径
+    model_path = os.path.join(models_dir, 'fashion_mnist_model.pth')
+    history_path = os.path.join(models_dir, 'training_history.npz')
+    
+    # 保存模型
+    try:
+        torch.save(model.state_dict(), model_path)
+        print(f"模型已保存到: {model_path}")
+    except Exception as e:
+        print(f"保存模型时出错: {e}")
+    
+    # 保存训练历史
+    try:
+        np.savez(history_path,
+            train_losses=train_losses,
+            train_accs=train_accs,
+            val_losses=val_losses,
+            val_accs=val_accs
+        )
+        print(f"训练历史已保存到: {history_path}")
+    except Exception as e:
+        print(f"保存训练历史时出错: {e}")
+
+# 修改主函数部分
+if __name__ == '__main__':
+    print("\nStarting training...")
+    train_losses, train_accs, val_losses, val_accs = train(epochs=5)
+
+    print("\nStarting testing...")
+    test()
+
+    # 保存结果
+    save_results(model, train_losses, train_accs, val_losses, val_accs)
