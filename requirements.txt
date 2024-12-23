@@ -1,4 +1,16 @@
-numpy
-pandas
-matplotlib
-tqdm 
+# Core ML Dependencies
+torch==2.1.0          # 深度学习框架
+torchvision==0.16.0   # 计算机视觉工具包
+
+# Data Processing
+numpy==1.24.3         # 数值计算
+pandas==2.0.3         # 数据分析
+
+# Visualization
+matplotlib==3.7.1     # 绘图工具
+
+# Utilities
+tqdm==4.65.0          # 进度条显示
+
+# Note: 这些依赖会通过 setup.bat/setup.sh 脚本自动安装
+# 此文件仅作为依赖版本的参考记录

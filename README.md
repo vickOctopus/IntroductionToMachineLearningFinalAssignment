@@ -10,100 +10,63 @@
 - 详细的性能分析报告
 - 可视化结果展示
 
-### 实验内容
-1. 基础模型训练
-   - 使用默认参数训练基准CNN模型
-   - 保存训练过程和结果
-
-2. 参数实验
-   - 测试不同的网络配置
-   - 包括激活函数、层数、学习率等
-
-3. 性能分析
-   - 生成详细的性能报告
-   - 包括参数量、训练时间、准确率等
-
 ## 快速开始
 
-### 详细安装步骤
+### 环境要求
+- Windows 10/11
+- Python 3.9
+  - 如果没有安装Python，脚本会自动安装
+  - 或访问 [Python官网](https://www.python.org/downloads/) 手动安装
 
-#### 1. 安装 Python
+### 使用步骤
 
-##### Windows:
-1. 访问 [Python官网](https://www.python.org/downloads/)
-2. 下载 Python 3.9.x 安装包
-3. 运行安装程序，勾选"Add Python to PATH"
-4. 验证安装：
-```bash
-python --version  # 应显示 Python 3.9.x
-```
+1. 下载项目
+   - 下载并解压项目文件
 
-##### macOS:
-```bash
-# 使用 Homebrew 安装
-brew install python@3.9
+2. 运行安装脚本
+   ```bash
+   # 右键点击文件夹空白处，选择"在终端中打开"
+   #输入
+   scripts\setup.bat
+   ```
+   安装脚本会：
+   - 检查并安装Python（如果需要）
+   - 创建虚拟环境
+   - 安装所需依赖
+   - 创建必要的目录
 
-# 验证安装
-python3.9 --version
-```
+3. 运行实验
+   ```bash
+   # 在项目文件夹中打开终端
+   python run.py
+   ```
 
-#### 2. 运行环境设置脚本
+### 可能的问题和解决方案
 
-##### Windows:
-```bash
-# 在项目文件夹中打开终端（或命令提示符）
-# 右键点击文件夹空白处，选择"在终端中打开"
+1. Python安装失败
+   - 访问 [Python官网](https://www.python.org/downloads/)
+   - 下载并安装Python 3.9
+   - 安装时勾选"Add Python to PATH"
 
-# 运行设置脚本（会自动创建虚拟环境并安装依赖）
-scripts\setup.bat
-```
+2. Python版本不正确
+   - 检查Python版本：`python --version`
+   - 如果版本不是3.9：
+     - 卸载当前Python版本
+     - 从 [Python 3.9下载页面](https://www.python.org/downloads/release/python-3913/) 下载3.9版本
+     - 安装时勾选"Add Python to PATH"
+   - 如果同时安装了多个Python版本：
+     - Win+R 输入 `sysdm.cpl`
+     - 高级 -> 环境变量
+     - 在Path中调整Python 3.9的优先级
 
-##### macOS/Linux:
-```bash
-# 在项目文件夹中打开终端
-# 右键点击文件夹，选择"新建位于文件夹位置的终端窗口"
+3. 依赖安装失败
+   - 检查网络连接
+   - 尝试使用管理员权限运行终端
+   - 如果PyTorch安装失败，访问 [PyTorch官网](https://pytorch.org/get-started/locally/)
 
-# 添加执行权限
-chmod +x scripts/setup.sh
-
-# 运行设置脚本
-./scripts/setup.sh
-```
-
-#### 3. 下载数据集
-
-##### 自动下载（推荐）：
-可以先进行步骤4，程序会自动下载 Fashion-MNIST 数据集
-
-##### 手动下载（可选）：
-如果自动下载失败，可以手动下载并放置数据集：
-
-1. 下载链接：
-   - GitHub: [Fashion-MNIST官方数据集](https://github.com/zalandoresearch/fashion-mnist#get-the-data)
-
-2. 需要下载的文件：
-   - train-images-idx3-ubyte.gz
-   - train-labels-idx1-ubyte.gz
-   - t10k-images-idx3-ubyte.gz
-   - t10k-labels-idx1-ubyte.gz
-
-3. 解压文件并放置到 `data/FashionMNIST/raw/` 目录下
-
-#### 4. 运行实验
-
-##### Windows:
-```bash
-# 在项目文件夹中打开终端
-python run.py
-```
-
-##### macOS/Linux:
-```bash
-# 在项目文件夹中打开终端
-python3 run.py
-# 或
-./run.py  # 如果添加了执行权限
-```
+4. 权限问题
+   - 右键点击终端，选择"以管理员身份运行"
+   - 重新运行安装脚本
 
 ## 项目结构
 
