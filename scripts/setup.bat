@@ -1,6 +1,11 @@
 @echo off
 chcp 65001 > nul
 
+:: 设置pip使用清华镜像源
+set "PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple"
+set "PIP_DEFAULT_TIMEOUT=100"
+set "PIP_RETRIES=3"
+
 echo Starting setup process...
 
 :: Check Python installation
@@ -22,7 +27,6 @@ if errorlevel 1 (
 echo Creating virtual environment...
 python -m venv venv || (
     echo Error: Failed to create virtual environment
-    echo Please make sure Python is installed correctly
     pause
     exit /b 1
 )
@@ -37,43 +41,39 @@ call venv\Scripts\activate.bat || (
 
 :: Upgrade pip
 echo Upgrading pip...
-python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org || (
-    echo Error: Failed to upgrade pip
-    pause
-    exit /b 1
+python -m pip install --upgrade pip || (
+    echo Warning: Failed to upgrade pip, continuing with other dependencies...
 )
 
 :: Install PyTorch
 echo Installing PyTorch (this may take a while)...
-python -m pip install torch==2.1.0 torchvision==0.16.0 --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host download.pytorch.org --index-url https://download.pytorch.org/whl/cpu
-if errorlevel 1 (
-    echo PyTorch installation from official source failed
-    echo Trying alternative installation method...
-    python -m pip install torch==2.1.0 torchvision==0.16.0 --trusted-host pypi.org --trusted-host files.pythonhosted.org
-    if errorlevel 1 (
-        echo Error: Failed to install PyTorch
-        echo Please check your internet connection or try:
-        echo 1. Disable any VPN or proxy
-        echo 2. Use a different network connection
-        echo 3. Visit https://pytorch.org/ for manual installation instructions
-        pause
-        exit /b 1
-    )
+python -m pip install torch==2.1.0 torchvision==0.16.0 || (
+    echo PyTorch installation failed
+    pause
+    exit /b 1
 )
 
 :: Install other dependencies
 echo Installing other dependencies...
+
+:: First install numpy 1.24.3 specifically
+echo Installing numpy 1.24.3...
+python -m pip install "numpy<2.0" || (
+    echo Error: Failed to install numpy
+    pause
+    exit /b 1
+)
+
+:: Then install other packages
 for %%p in (
-    numpy==1.24.3
-    pandas==2.0.3
-    matplotlib==3.7.1
-    tqdm==4.65.0
+    pandas
+    matplotlib
+    tqdm
+    tabulate
 ) do (
     echo Installing %%p...
-    python -m pip install %%p --trusted-host pypi.org --trusted-host files.pythonhosted.org
-    if errorlevel 1 (
+    python -m pip install %%p || (
         echo Error: Failed to install %%p
-        echo Please check your internet connection
         pause
         exit /b 1
     )
@@ -81,10 +81,10 @@ for %%p in (
 
 :: Create directories
 echo Creating necessary directories...
-mkdir data\raw 2>nul
-mkdir models 2>nul
-mkdir experiment_logs 2>nul
-mkdir visualization_results 2>nul
+if not exist "data\raw" mkdir "data\raw"
+if not exist "models" mkdir "models"
+if not exist "experiment_logs" mkdir "experiment_logs"
+if not exist "visualization_results" mkdir "visualization_results"
 
 echo Setup completed successfully!
 echo All dependencies have been installed.
