@@ -37,7 +37,7 @@ call venv\Scripts\activate.bat || (
 
 :: Upgrade pip
 echo Upgrading pip...
-python -m pip install --upgrade pip || (
+python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org || (
     echo Error: Failed to upgrade pip
     pause
     exit /b 1
@@ -45,14 +45,17 @@ python -m pip install --upgrade pip || (
 
 :: Install PyTorch
 echo Installing PyTorch (this may take a while)...
-python -m pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cpu
+python -m pip install torch==2.1.0 torchvision==0.16.0 --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host download.pytorch.org --index-url https://download.pytorch.org/whl/cpu
 if errorlevel 1 (
     echo PyTorch installation from official source failed
     echo Trying alternative installation method...
-    python -m pip install torch==2.1.0 torchvision==0.16.0
+    python -m pip install torch==2.1.0 torchvision==0.16.0 --trusted-host pypi.org --trusted-host files.pythonhosted.org
     if errorlevel 1 (
         echo Error: Failed to install PyTorch
-        echo Please check your internet connection
+        echo Please check your internet connection or try:
+        echo 1. Disable any VPN or proxy
+        echo 2. Use a different network connection
+        echo 3. Visit https://pytorch.org/ for manual installation instructions
         pause
         exit /b 1
     )
@@ -67,9 +70,10 @@ for %%p in (
     tqdm==4.65.0
 ) do (
     echo Installing %%p...
-    python -m pip install %%p
+    python -m pip install %%p --trusted-host pypi.org --trusted-host files.pythonhosted.org
     if errorlevel 1 (
         echo Error: Failed to install %%p
+        echo Please check your internet connection
         pause
         exit /b 1
     )
