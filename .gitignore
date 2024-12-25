@@ -20,6 +20,9 @@ visualization_results/
 *.log
 *.json
 
+# 实验报告
+experiment_report.md
+
 # IDE配置
 .idea/
 .vscode/
