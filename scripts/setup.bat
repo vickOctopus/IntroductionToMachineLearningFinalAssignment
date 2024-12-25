@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
 
-:: 设置pip使用清华镜像源
+
 set "PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple"
 set "PIP_DEFAULT_TIMEOUT=100"
 set "PIP_RETRIES=3"
