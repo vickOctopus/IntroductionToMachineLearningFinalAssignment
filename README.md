@@ -6,9 +6,37 @@
 
 ### 主要功能
 - 基础CNN模型训练与评估
-- 自动化的网络参数实验
-- 详细的性能分析报告
+- 网络参数实验
+- 性能分析报告
+- 复杂度分析报告
 - 可视化结果展示
+
+
+## 实验设置及结果分析
+
+### 2.1 数据集
+- ✅ `report_materials.md` 中详细说明了Fashion-MNIST数据集
+- ✅ 代码中实现了数据集的划分（训练集80%、验证集10%、测试集10%）
+
+### 2.2 性能指标
+- ✅ `report_materials.md` 中详细列出了所有性能指标
+- ✅ `src/analyze.py` 中实现了这些指标的计算
+
+### 2.3 不同参数对性能的影响
+- ✅ `src/parameter_experiments.py` 中实现了参数实验
+- ✅ 包含激活函数、网络层数、学习率等参数的实验
+- ✅ 结果保存在 `experiment_logs/performance_analysis.csv`
+
+### 2.4 计算复杂度分析
+- ✅ `src/analyze.py` 中实现了复杂度分析
+- ✅ 包含参数量、训练时长、推理时间等指标
+- ✅ 结果保存在 `experiment_logs/complexity_analysis.csv`
+
+### 2.5 训练过程的loss曲线
+- ✅ `src/visualize.py` 中实现了loss曲线绘制
+- ✅ 包含训练集、验证集、测试集的loss变化
+- ✅ 结果保存在 `visualization_results/loss_curves.png`
+
 
 ## 快速开始
 
@@ -53,14 +81,14 @@
       - 实时显示每组实验的准确率
    
    3. 生成分析报告
-      - `experiment_logs/experiment_results.json`：原始实验数据
-      - `experiment_logs/performance_analysis.md`：性能对比分析
-      - `experiment_logs/complexity_analysis.md`：复杂度分析
+      - `experiment_logs/experiment_results.json`：实验数据
+      - `experiment_logs/performance_analysis.csv`：性能影响分析
+      - `experiment_logs/complexity_analysis.csv`：计算复杂度分析
    
-   运行完成后，您可以在以下位置查看结果：
+   运行完成后，可以在以下位置查看结果：
    - 训练过程可视化：`visualization_results/loss_curves.png`
-   - 实验分析报告：`experiment_logs/performance_analysis.md`
-   - 模型复杂度报告：`experiment_logs/complexity_analysis.md`
+   - 实验分析报告：`experiment_logs/performance_analysis.csv`
+   - 模型复杂度报告：`experiment_logs/complexity_analysis.csv`
 
 ### 可能的问题和解决方案
 
@@ -98,8 +126,8 @@ project_root/
 │       └── raw/            # 原始数据文件
 ├── experiment_logs/         # 实验结果和分析
 │   ├── experiment_results.json     # 实验原始数据
-│   ├── performance_analysis.md     # 性能分析报告
-│   └── complexity_analysis.md      # 复杂度分析报告
+│   ├── performance_analysis.csv     # 性能分析报告
+│   └── complexity_analysis.csv      # 复杂度分析报告
 ├── models/                  # 保存的模型文件
 │   ├── fashion_mnist_model.pth     # 训练好的模型
 │   └── training_history.npz        # 训练历史数据
@@ -143,8 +171,8 @@ project_root/
 
 #### 实验结果
 - `experiment_results.json`: 包含所有实验配置的原始结果
-- `performance_analysis.md`: 性能对比分析报告
-- `complexity_analysis.md`: 模型复杂度分析报告
+- `performance_analysis.csv`: 性能对比分析报告
+- `complexity_analysis.csv`: 模型复杂度分析报告
 
 #### 模型文件
 - `fashion_mnist_model.pth`: 保存的模型参数
@@ -152,3 +180,5 @@ project_root/
 
 #### 可视化结果
 - `loss_curves.png`: 训练、验证和测试损失曲线
+
+
