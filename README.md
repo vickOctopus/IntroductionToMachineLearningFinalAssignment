@@ -40,6 +40,27 @@
    # 在项目文件夹中打开终端
    python run.py
    ```
+   
+   运行后会依次执行：
+   1. 基础模型训练
+      - 显示训练进度和损失值
+      - 保存模型到 `models/fashion_mnist_model.pth`
+      - 生成Loss曲线图到 `visualization_results/loss_curves.png`
+   
+   2. 参数实验
+      - 显示实验进度（如：[1/12] 实验组合）
+      - 对每个参数组合进行训练和评估
+      - 实时显示每组实验的准确率
+   
+   3. 生成分析报告
+      - `experiment_logs/experiment_results.json`：原始实验数据
+      - `experiment_logs/performance_analysis.md`：性能对比分析
+      - `experiment_logs/complexity_analysis.md`：复杂度分析
+   
+   运行完成后，您可以在以下位置查看结果：
+   - 训练过程可视化：`visualization_results/loss_curves.png`
+   - 实验分析报告：`experiment_logs/performance_analysis.md`
+   - 模型复杂度报告：`experiment_logs/complexity_analysis.md`
 
 ### 可能的问题和解决方案
 
