@@ -6,14 +6,10 @@ import torch.optim as optim
 import os
 import numpy as np
 import sys
-
-# 在导入部分添加错误处理
 try:
     from src.visualize import plot_loss_curves
-    print("成功导入 plot_loss_curves 函数")
-except ImportError as e:
-    print(f"导入 plot_loss_curves 失败: {e}")
-    print(f"Python 路径: {sys.path}")
+except ImportError:
+    print("无法导入 plot_loss_curves 函数，请确保 src/visualize.py 文件存在")
     raise
 
 # 更新路径计算
@@ -231,7 +227,7 @@ def train(epochs=5):
         train_losses.append(epoch_loss / batch_count)
         train_accs.append(correct / total)
         
-        # 验证集评估
+        # ��证集评估
         val_loss, val_acc = evaluate(model, val_loader)
         val_losses.append(val_loss)
         val_accs.append(val_acc)

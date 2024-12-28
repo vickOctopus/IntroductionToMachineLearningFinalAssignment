@@ -39,7 +39,6 @@ def create_performance_table(results):
                     'Parameters': result['efficiency']['params_count'],
                     'Inference Speed (samples/s)': result['efficiency']['inference_speed'],
                     'Training Time (s)': result['efficiency']['training_efficiency']['total_train_time'],
-                    'Convergence Epoch': result['efficiency']['training_efficiency']['convergence_epoch'],
                     'Accuracy': result['accuracy']
                 }
                 records.append(record)
@@ -78,31 +77,19 @@ def save_results_table(df):
 def create_complexity_analysis(results):
     """Generate model complexity analysis table"""
     records = []
-    
     for model_name, result in results.items():
         try:
             _, activation, conv_layers, lr = model_name.split('_')
             
-            # Extract metrics
             efficiency = result['efficiency']
             training_eff = efficiency['training_efficiency']
             
-            # 确保所有数值都是数字类型
-            params_count = int(efficiency['params_count'])
-            inference_speed = float(efficiency['inference_speed'])
-            training_time = float(training_eff['total_train_time'])
-            avg_inference_time = float(efficiency['avg_inference_time'])
-            convergence_epoch = int(training_eff['convergence_epoch'])
-            accuracy = float(result['accuracy'])
-            
             record = {
                 'Model Config': f"{activation}-{conv_layers}layers-lr{lr}",
-                'Parameters': params_count,  # 不预先格式化，让pandas处理
-                'Inference Speed (samples/s)': inference_speed,
-                'Training Time (s)': training_time,
-                'Avg Inference Time (ms/sample)': avg_inference_time * 1000,
-                'Convergence Epoch': convergence_epoch,  # 保持为整数
-                'Accuracy': accuracy
+                'Parameters': int(efficiency['params_count']),
+                'Inference Speed (samples/s)': float(efficiency['inference_speed']),
+                'Training Time (s)': float(training_eff['total_train_time']),
+                'Accuracy': float(result['accuracy'])
             }
             records.append(record)
         except Exception as e:
@@ -117,8 +104,6 @@ def create_complexity_analysis(results):
     df['Parameters'] = df['Parameters'].apply(lambda x: f"{x:,}")
     df['Inference Speed (samples/s)'] = df['Inference Speed (samples/s)'].apply(lambda x: f"{x:.2f}")
     df['Training Time (s)'] = df['Training Time (s)'].apply(lambda x: f"{x:.2f}")
-    df['Avg Inference Time (ms/sample)'] = df['Avg Inference Time (ms/sample)'].apply(lambda x: f"{x:.2f}")
-    df['Convergence Epoch'] = df['Convergence Epoch'].astype(int)  # 确保是整数
     df['Accuracy'] = df['Accuracy'].apply(lambda x: f"{x:.4f}")
     
     # Save results

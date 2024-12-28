@@ -14,18 +14,11 @@ project_root = os.path.abspath(os.path.join(current_dir, '..'))
 log_dir = os.path.join(project_root, 'experiment_logs')
 
 # 检测可用设备
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-elif torch.backends.mps.is_available():  # Mac的Metal加速
+if torch.backends.mps.is_available():  # Mac的Metal加速
     device = torch.device("mps")
 else:
     device = torch.device("cpu")
 print(f"使用设备: {device}")
-
-def log_training(log_file, message):
-    """记录训练信息到文件"""
-    with open(log_file, 'a') as f:
-        f.write(message + '\n')
 
 # 基础CNN（可配置参数）
 class BaseCNN(nn.Module):
@@ -78,75 +71,21 @@ class BaseCNN(nn.Module):
         x = self.classifier(x)
         return x
 
-# 实验配置 - 增加参数组合
+# 实验配置 
 EXPERIMENTS = {
     'learning_rates': [0.01, 0.001],  # 两种学习率
     'optimizers': {
         'Adam': optim.Adam  # 保持使用Adam优化器
     },
-    'activations': ['relu', 'leakyrelu'],  # 修改这里：去掉下划线
+    'activations': ['relu', 'leakyrelu'],  
     'conv_layers': [2, 3, 4]  # 三种络深度
 }
 
 def calculate_model_complexity(model):
     """计算模型复杂度"""
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
+    # 简化为只返回参数总量
     return {
-        'total_params': total_params,
-        'trainable_params': trainable_params
-    }
-
-def measure_inference_time(model, test_loader, num_batches=50):
-    """测量推理时间"""
-    device = next(model.parameters()).device
-    total_time = 0
-    total_samples = 0
-    
-    model.eval()
-    with torch.no_grad():
-        for i, (inputs, _) in enumerate(test_loader):
-            if i >= num_batches:
-                break
-                
-            inputs = inputs.to(device)
-            batch_size = inputs.size(0)
-            
-            start_time = time.time()
-            _ = model(inputs)
-            end_time = time.time()
-            
-            total_time += end_time - start_time
-            total_samples += batch_size
-    
-    avg_time_per_sample = total_time / total_samples
-    return {
-        'total_time': total_time,
-        'avg_time_per_sample': avg_time_per_sample,
-        'samples_per_second': total_samples / total_time
-    }
-
-def measure_memory_usage(model, test_loader):
-    """测量内存使用"""
-    device = next(model.parameters()).device
-    if device.type == 'cuda':
-        torch.cuda.reset_peak_memory_stats()
-        
-    # 运行一个批次来测量内存
-    inputs, _ = next(iter(test_loader))
-    inputs = inputs.to(device)
-    
-    with torch.no_grad():
-        _ = model(inputs)
-    
-    if device.type == 'cuda':
-        max_memory = torch.cuda.max_memory_allocated() / 1024 / 1024  # MB
-    else:
-        max_memory = 0  # CPU模式下不测量内存
-        
-    return {
-        'max_memory_mb': max_memory
+        'total_params': sum(p.numel() for p in model.parameters())
     }
 
 def evaluate_model_efficiency(model, test_loader):
@@ -162,7 +101,7 @@ def evaluate_model_efficiency(model, test_loader):
     model.eval()
     with torch.no_grad():
         for i, (inputs, _) in enumerate(test_loader):
-            if i >= 50:  # 修改这里：从100改为50个批次
+            if i >= 50:  # 只测试50个批次
                 break
             inputs = inputs.to(device)
             batch_size = inputs.size(0)
@@ -177,22 +116,13 @@ def evaluate_model_efficiency(model, test_loader):
     return {
         'params_count': total_params,                          # 模型参数量
         'inference_speed': total_samples / total_time,         # 推理速度（样本/秒）
-        'avg_inference_time': total_time / total_samples       # 平均推理时间（秒/样本）
     }
 
-def calculate_training_efficiency(epoch_times, losses):
+def calculate_training_efficiency(epoch_times):
     """计算训练效率指标"""
-    # 收敛判定：当损失变化小于阈值时认为收敛
-    def find_convergence_epoch(losses, threshold=0.001):
-        for i in range(1, len(losses)):
-            if abs(losses[i] - losses[i-1]) < threshold:
-                return i
-        return len(losses)
-    
     return {
-        'total_train_time': sum(epoch_times),                 # 总训练时间
-        'convergence_epoch': find_convergence_epoch(losses),  # 收敛轮次
-        'avg_epoch_time': np.mean(epoch_times)                # 平均每轮训练时间
+        'total_train_time': sum(epoch_times),
+        'avg_epoch_time': np.mean(epoch_times)
     }
 
 class EarlyStopping:
@@ -219,14 +149,13 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
     """训练和评估模型"""
     start_time = time.time()
     epoch_times = []
-    epoch_losses = []
     
     # 将模型移到GPU
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optimizer(model.parameters(), lr=lr)
     
-    # 初始化早停��增加patience
+    # 初始化早停机制，增加patience
     early_stopping = EarlyStopping(patience=3, min_delta=0.001)  # 从2增加到3
     
     # 训练
@@ -237,7 +166,7 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
         batch_count = 0
         
         for i, (inputs, labels) in enumerate(train_loader):
-            # 将数据移到GPU
+            # 将数据移��GPU
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -251,7 +180,6 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
         avg_epoch_loss = epoch_loss / batch_count
         epoch_time = time.time() - epoch_start
         epoch_times.append(epoch_time)
-        epoch_losses.append(avg_epoch_loss)
         
         # 早停检查
         early_stopping(avg_epoch_loss)
@@ -260,7 +188,7 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
             break
     
     # 计算训练效率
-    training_efficiency = calculate_training_efficiency(epoch_times, epoch_losses)
+    training_efficiency = calculate_training_efficiency(epoch_times)
     
     # 评估
     model.eval()
@@ -334,7 +262,7 @@ def experiment():
     df_perf = create_performance_table(results)
     save_results_table(df_perf)
     
-    # ���成复杂度分析
+    # 生成复杂度分析
     df_complexity = create_complexity_analysis(results)
     
     return results, results_file
