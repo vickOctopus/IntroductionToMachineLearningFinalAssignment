@@ -148,11 +148,6 @@ def main():
     # 保存结果
     save_analysis_results(perf_df, perf_analysis, create_complexity_analysis(results))
     
-    print(f"Results tables have been saved to:")
-    print(f"CSV: {perf_csv}")
-    print(f"Markdown: {perf_md}")
-    print("\nTop 5 Configurations:")
-    print(perf_df.head().to_markdown())
 
 if __name__ == "__main__":
     main() 

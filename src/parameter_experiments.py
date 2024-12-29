@@ -130,26 +130,6 @@ def calculate_training_efficiency(epoch_times):
         'avg_epoch_time': np.mean(epoch_times)
     }
 
-class EarlyStopping:
-    """早停机制"""
-    def __init__(self, patience=5, min_delta=0.0005):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.counter = 0
-
 def train_and_evaluate(model, lr=0.001, epochs=10):
     """训练和评估模型"""
     start_time = time.time()
