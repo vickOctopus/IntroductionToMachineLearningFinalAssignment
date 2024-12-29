@@ -97,18 +97,27 @@ Fashion-MNIST 是一个替代 MNIST 手写数字数据集的图像数据集。�
 1. 原始实验数据
    - 路径：`experiment_logs/experiment_results.json`
    - 内容：包含所有参数组合的详细实验结果
+   - 格式：JSON格式，包含每个模型配置的准确率和效率指标
 
 2. 性能分析报告
-   - 路径：`experiment_logs/performance_analysis.md`
-   - 内容：不同参数配置的性能对比分析
+   - 路径：`experiment_logs/performance_analysis.csv`
+   - 内容：不同参数配置的性能对比
+   - 指标：激活函数、网络层数、学习率、准确率、训练时长
 
 3. 复杂度分析报告
-   - 路径：`experiment_logs/complexity_analysis.md`
+   - 路径：`experiment_logs/complexity_analysis.csv`
    - 内容：不同网络结构的复杂度和效率分析
+   - 指标：参数量、模型大小、训练时长、单样本测试时长
 
-4. loss曲线可视化结果
+4. loss曲线可视化
    - 路径：`visualization_results/loss_curves.png`
-   - 内容：训练过程中的损失曲线变化
+   - 内容：训练过程中的loss曲线
+   - 数据：训练集、验证集、测试集的loss变化
+
+5. 训练好的模型
+   - 路径：`models/fashion_mnist_model.pth`
+   - 内容：保存的模型参数
+   - 用途：可用于后续的推理或继续训练
 
 
 
