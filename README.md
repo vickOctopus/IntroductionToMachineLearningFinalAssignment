@@ -15,27 +15,26 @@
 ## 实验设置及结果分析
 
 ### 2.1 数据集
-- ✅ `report_materials.md` 中详细说明了Fashion-MNIST数据集
-- ✅ 代码中实现了数据集的划分（训练集80%、验证集10%、测试集10%）
+-  `report_materials.md` 中详细说明了Fashion-MNIST数据集
+-  代码中实现了数据集的划分（训练集80%、验证集10%、测试集10%）
 
 ### 2.2 性能指标
-- ✅ `report_materials.md` 中详细列出了所有性能指标
-- ✅ `src/analyze.py` 中实现了这些指标的计算
+-  `report_materials.md` 中详细列出了所有性能指标
+-  `src/analyze.py` 中实现了这些指标的计算
 
 ### 2.3 不同参数对性能的影响
-- ✅ `src/parameter_experiments.py` 中实现了参数实验
-- ✅ 包含激活函数、网络层数、学习率等参数的实验
-- ✅ 结果保存在 `experiment_logs/performance_analysis.csv`
+- 实验结果保存在 `experiment_logs/performance_analysis.csv`
+- 实验代码在 `src/parameter_experiments.py`
 
 ### 2.4 计算复杂度分析
-- ✅ `src/analyze.py` 中实现了复杂度分析
-- ✅ 包含参数量、训练时长、推理时间等指标
-- ✅ 结果保存在 `experiment_logs/complexity_analysis.csv`
+- 复杂度分析结果保存在 `experiment_logs/complexity_analysis.csv`
+- 包含参数量、模型大小、训练时长、单样本测试时长等指标
+- 分析代码在 `src/analyze.py`
 
 ### 2.5 训练过程的loss曲线
-- ✅ `src/visualize.py` 中实现了loss曲线绘制
-- ✅ 包含训练集、验证集、测试集的loss变化
-- ✅ 结果保存在 `visualization_results/loss_curves.png`
+-  `src/visualize.py` 中实现了loss曲线绘制
+-  包含训练集、验证集、测试集的loss变化
+-  结果保存在 `visualization_results/loss_curves.png`
 
 
 ## 快速开始
@@ -66,29 +65,21 @@
 3. 运行实验
    ```bash
    # 在项目文件夹中打开终端
-   python run.py
+   python run.py          # 运行完整流程
+   python run.py -b       # 只运行基础模型
+   python run.py -e       # 只运行参数实验
    ```
    
-   运行后会依次执行：
-   1. 基础模型训练
-      - 显示训练进度和损失值
-      - 保存模型到 `models/fashion_mnist_model.pth`
-      - 生成Loss曲线图到 `visualization_results/loss_curves.png`
-   
-   2. 参数实验
-      - 显示实验进度（如：[1/12] 实验组合）
-      - 对每个参数组合进行训练和评估
-      - 实时显示每组实验的准确率
-   
-   3. 生成分析报告
-      - `experiment_logs/experiment_results.json`：实验数据
-      - `experiment_logs/performance_analysis.csv`：性能影响分析
-      - `experiment_logs/complexity_analysis.csv`：计算复杂度分析
-   
-   运行完成后，可以在以下位置查看结果：
-   - 训练过程可视化：`visualization_results/loss_curves.png`
-   - 实验分析报告：`experiment_logs/performance_analysis.csv`
-   - 模型复杂度报告：`experiment_logs/complexity_analysis.csv`
+   运行选项：
+   - 完整流程：依次执行基础模型训练和参数实验
+   - 基础模型(-b)：只训练基础模型，生成loss曲线
+   - 参数实验(-e)：只进行参数实验，生成分析报告
+
+   输出文件：
+   - `models/fashion_mnist_model.pth`：训练好的模型
+   - `visualization_results/loss_curves.png`：loss曲线可视化
+   - `experiment_logs/performance_analysis.csv`：性能分析
+   - `experiment_logs/complexity_analysis.csv`：复杂度分析
 
 ### 可能的问题和解决方案
 
