@@ -25,7 +25,7 @@ class BaseCNN(nn.Module):
     def __init__(self, 
                  activation='relu',
                  conv_layers=2,
-                 channels=[32, 64, 128],  # 修改默认通道配置
+                 channels=[32, 64, 128, 256],
                  kernel_size=3):
         super(BaseCNN, self).__init__()
         
@@ -42,20 +42,16 @@ class BaseCNN(nn.Module):
         # 构建卷积层
         layers = []
         in_channels = 1
-        current_size = 28  # 跟踪特征图大小
-        
         for i in range(conv_layers):
             out_channels = channels[i]
             layers.extend([
-                # 使用stride=2的卷积代替MaxPool，减少特征图尺寸的过快下降
                 nn.Conv2d(in_channels, out_channels, kernel_size, 
                          stride=1, padding=kernel_size//2),
                 nn.BatchNorm2d(out_channels),
                 self.activation,
-                nn.MaxPool2d(2, 2) if current_size > 7 else nn.Identity()  # 控制特征图最小尺寸
+                # 只在前两层使用MaxPool2d，保持更大的特征图
+                *([] if i >= 2 else [nn.MaxPool2d(2, 2)])
             ])
-            if current_size > 7:
-                current_size //= 2
             in_channels = out_channels
         
         self.features = nn.Sequential(*layers)
@@ -66,8 +62,8 @@ class BaseCNN(nn.Module):
             x = self.features(x)
             fc_input = x.view(1, -1).size(1)
         
-        # 根据网络深度调整全连接层大小
-        hidden_size = 512 * conv_layers  # 随层数增加隐藏层大小
+        # 根据网络深度增加隐藏层大小
+        hidden_size = 512 * (conv_layers - 1)  # 随层数增加而增加
         
         self.classifier = nn.Sequential(
             nn.Linear(fc_input, hidden_size),
@@ -85,9 +81,9 @@ class BaseCNN(nn.Module):
 
 # 实验配置 
 EXPERIMENTS = {
-    'learning_rates': [0.01, 0.001],  # 可选学习率: 0.1, 0.01, 0.001 
-    'activations': ['relu', 'leakyrelu'],   # 可选激活函数: relu, leaky_relu, tanh 
-    'conv_layers': [2, 3]      # 可选网络层数: 2, 3, 4 
+    'learning_rates': [0.01, 0.001],  # 学习率
+    'activations': ['relu', 'leakyrelu'],  # 激活函数
+    'conv_layers': [2, 3, 4]  # 网络层数：2层、3层、4层
 }
 
 def calculate_model_complexity(model):
@@ -248,7 +244,7 @@ def experiment():
                     model_name = f"BaseCNN_{activation}_{conv_layers}_{lr}"
                     model = BaseCNN(activation=activation, 
                                   conv_layers=conv_layers,
-                                  channels=[32, 64, 128],
+                                  channels=[32, 64, 128, 256],
                                   kernel_size=3)
                     result = train_and_evaluate(model, lr=lr)
                     results[model_name] = result
