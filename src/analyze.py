@@ -19,105 +19,120 @@ def load_experiment_results(results_file):
         return json.load(f)
 
 def create_performance_table(results):
-    """生成性能对比表格"""
+    """生成性能对比表格 - 分析不同参数对性能的影响"""
     records = []
-    print(f"\n处理的实验结果数量: {len(results)}")
-    print("模型配置列表:")
-    
     for model_name, result in results.items():
         try:
-            print(f"正在处理模型: {model_name}")  # 打印每个模型名称
             parts = model_name.split('_')
-            print(f"拆分结果: {parts}")  # 打印拆分结果
-            
-            if len(parts) == 4:
-                _, activation, conv_layers, lr = parts
-                record = {
-                    'Activation': activation,
-                    'Conv Layers': conv_layers,
-                    'Learning Rate': lr,
-                    'Parameters': result['efficiency']['params_count'],
-                    'Inference Speed (samples/s)': result['efficiency']['inference_speed'],
-                    'Training Time (s)': result['efficiency']['training_efficiency']['total_train_time'],
-                    'Accuracy': result['accuracy']
-                }
-                records.append(record)
-                print(f"成功处理模型: {model_name}")
-            else:
-                print(f"警告: 模型名称格式不正确: {model_name}, 部分数量: {len(parts)}")
+            if len(parts) != 4:
+                continue
+                
+            _, activation, conv_layers, lr = parts
+            record = {
+                '激活函数': activation,
+                '网络层数': int(conv_layers),
+                '学习率': float(lr),
+                '准确率': result['accuracy'],
+                '训练时长(秒)': result['efficiency']['training_efficiency']['total_train_time'],
+                '平均每轮训练时间(秒)': result['efficiency']['training_efficiency']['avg_epoch_time']
+            }
+            records.append(record)
         except Exception as e:
             print(f"处理模型 {model_name} 时出错: {e}")
             continue
     
-    # 创建DataFrame
     df = pd.DataFrame(records)
     
-    # 排序和格式化
-    df = df.sort_values('Accuracy', ascending=False)
-    df['Accuracy'] = df['Accuracy'].apply(lambda x: f"{x:.4f}")
-    df['Inference Speed (samples/s)'] = df['Inference Speed (samples/s)'].apply(lambda x: f"{x:.2f}")
-    df['Training Time (s)'] = df['Training Time (s)'].apply(lambda x: f"{x:.2f}")
+    # 先进行分析计算
+    analysis = {
+        '激活函数分析': df.groupby('激活函数')['准确率'].agg(['mean', 'max', 'min']),
+        '网络层数分析': df.groupby('网络层数')['准确率'].agg(['mean', 'max', 'min']),
+        '学习率分析': df.groupby('学习率')['准确率'].agg(['mean', 'max', 'min'])
+    }
     
-    return df
+    # 格式化分析结果
+    for key in analysis:
+        analysis[key] = analysis[key].round(4)
+    
+    # 然后格式化原始数据
+    df['准确率'] = df['准确率'].apply(lambda x: f"{x:.4f}")
+    df['训练时长(秒)'] = df['训练时长(秒)'].apply(lambda x: f"{x:.2f}")
+    df['平均每轮训练时间(秒)'] = df['平均每轮训练时间(秒)'].apply(lambda x: f"{x:.2f}")
+    df['学习率'] = df['学习率'].apply(lambda x: f"{x:.4f}")
+    
+    return df, analysis
 
-def save_results_table(df):
-    """保存结果表格到experiment_logs目录"""
-    # 使用"性能分析"作为文件名
-    csv_path = os.path.join(log_dir, 'performance_analysis.csv')
-    df.to_csv(csv_path, index=False)
+def save_analysis_results(perf_df, perf_analysis, complexity_df):
+    """保存分析结果"""
+    # 保存性能分析结果
+    perf_csv = os.path.join(log_dir, 'performance_analysis.csv')
+    perf_df.to_csv(perf_csv, index=False)
     
-    # 同时保存为Markdown格式以便查看
-    md_path = os.path.join(log_dir, 'performance_analysis.md')
-    with open(md_path, 'w') as f:
-        f.write("# Performance Analysis\n\n")
-        f.write(df.to_markdown())
+    # 保存性能分析的Markdown报告
+    perf_md = os.path.join(log_dir, 'performance_analysis.md')
+    with open(perf_md, 'w', encoding='utf-8') as f:
+        f.write("# 模型性能分析\n\n")
+        f.write("## 原始数据\n")
+        f.write(perf_df.to_markdown(index=False))
+        f.write("\n\n## 参数影响分析\n")
+        for name, analysis in perf_analysis.items():
+            f.write(f"\n### {name}\n")
+            f.write(analysis.to_markdown())
+            f.write("\n")
     
-    return csv_path, md_path
+    # 保存复杂度分析结果
+    complexity_csv = os.path.join(log_dir, 'complexity_analysis.csv')
+    complexity_df.to_csv(complexity_csv, index=False)
+    
+    # 保存复杂度分析的Markdown报告
+    complexity_md = os.path.join(log_dir, 'complexity_analysis.md')
+    with open(complexity_md, 'w', encoding='utf-8') as f:
+        f.write("# 模型复杂度分析\n\n")
+        f.write(complexity_df.to_markdown(index=False))
 
 def create_complexity_analysis(results):
-    """Generate model complexity analysis table"""
+    """生成模型复杂度分析表格 - 关注计算资源消耗"""
     records = []
     for model_name, result in results.items():
         try:
-            _, activation, conv_layers, lr = model_name.split('_')
+            parts = model_name.split('_')
+            if len(parts) != 4:
+                continue
+                
+            _, activation, conv_layers, lr = parts
             
             efficiency = result['efficiency']
             training_eff = efficiency['training_efficiency']
             
+            # 计算单个样本的平均测试时长
+            total_samples = 10000  # test_loader的总样本数
+            inference_time = total_samples / efficiency['inference_speed']
+            avg_sample_time = inference_time / total_samples
+            
             record = {
-                'Model Config': f"{activation}-{conv_layers}layers-lr{lr}",
-                'Parameters': int(efficiency['params_count']),
-                'Inference Speed (samples/s)': float(efficiency['inference_speed']),
-                'Training Time (s)': float(training_eff['total_train_time']),
-                'Accuracy': float(result['accuracy'])
+                '激活函数': activation,
+                '网络层数': int(conv_layers),
+                '学习率': float(lr),
+                '参数量': int(efficiency['params_count']),
+                '模型大小(MB)': int(efficiency['params_count']) * 4 / (1024 * 1024),
+                '训练总时长(秒)': float(training_eff['total_train_time']),
+                '单样本测试时长(毫秒)': avg_sample_time * 1000,
+                '推理速度(样本/秒)': float(efficiency['inference_speed'])
             }
             records.append(record)
         except Exception as e:
-            print(f"Error processing model {model_name}: {e}")
+            print(f"处理模型 {model_name} 时出错: {e}")
             continue
     
-    # Create DataFrame and sort
     df = pd.DataFrame(records)
-    df = df.sort_values('Accuracy', ascending=False)
     
-    # 格式化数值列
-    df['Parameters'] = df['Parameters'].apply(lambda x: f"{x:,}")
-    df['Inference Speed (samples/s)'] = df['Inference Speed (samples/s)'].apply(lambda x: f"{x:.2f}")
-    df['Training Time (s)'] = df['Training Time (s)'].apply(lambda x: f"{x:.2f}")
-    df['Accuracy'] = df['Accuracy'].apply(lambda x: f"{x:.4f}")
+    # 格式化数值
+    df['参数量'] = df['参数量'].apply(lambda x: f"{x:,}")
+    df['模型大小(MB)'] = df['模型大小(MB)'].apply(lambda x: f"{x:.2f}")
+    df['训练总时长(秒)'] = df['训练总时长(秒)'].apply(lambda x: f"{x:.2f}")
+    df['单样本测试时长(毫秒)'] = df['单样本测试时长(毫秒)'].apply(lambda x: f"{x:.3f}")
+    df['推理速度(样本/秒)'] = df['推理速度(样本/秒)'].apply(lambda x: f"{x:.2f}")
     
-    # Save results
-    csv_path = os.path.join(log_dir, 'complexity_analysis.csv')
-    df.to_csv(csv_path, index=False)
-    
-    md_path = os.path.join(log_dir, 'complexity_analysis.md')
-    with open(md_path, 'w', encoding='utf-8') as f:
-        f.write("# Model Complexity Analysis\n\n")
-        f.write(df.to_markdown(index=False))
-    
-    print(f"\nComplexity analysis saved to:")
-    print(f"CSV: {csv_path}")
-    print(f"Markdown: {md_path}")
     return df
 
 def main():
@@ -128,16 +143,16 @@ def main():
     results = load_experiment_results(results_file)
     
     # 创建性能表格
-    df = create_performance_table(results)
+    perf_df, perf_analysis = create_performance_table(results)
     
     # 保存结果
-    csv_path, md_path = save_results_table(df)
+    save_analysis_results(perf_df, perf_analysis, create_complexity_analysis(results))
     
     print(f"Results tables have been saved to:")
-    print(f"CSV: {csv_path}")
-    print(f"Markdown: {md_path}")
+    print(f"CSV: {perf_csv}")
+    print(f"Markdown: {perf_md}")
     print("\nTop 5 Configurations:")
-    print(df.head().to_markdown())
+    print(perf_df.head().to_markdown())
 
 if __name__ == "__main__":
     main() 

@@ -2,6 +2,7 @@
 import sys
 import os
 from pathlib import Path
+import argparse
 
 def setup_path():
     """设置Python路径"""
@@ -32,25 +33,51 @@ def ensure_venv():
         print("切换到虚拟环境...")
         os.execl(str(python_path), str(python_path), *sys.argv)
 
+def parse_args():
+    """解析命令行参数"""
+    parser = argparse.ArgumentParser(description='运行Fashion MNIST实验')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-b', '--base', action='store_true',
+                      help='只运行基础模型')
+    group.add_argument('-e', '--exp', action='store_true',
+                      help='只运行参数实验')
+    return parser.parse_args()
+
 def main():
     """主函数"""
     ensure_venv()
     setup_path()
+    args = parse_args()
     
     try:
-        # 1. 先训练基础模型
-        from src.fashion_mnist import train
-        print("\n第一步: 训练基础模型...")
-        train_losses, train_accs, val_losses, val_accs, test_losses = train(epochs=5)
-        print("\n基础模型训练完成！")
+        if args.exp:
+            # 只运行参数实验
+            from src.parameter_experiments import experiment
+            print("\n运行参数实验...")
+            results, results_file = experiment()
+            print(f"\n实验结果已保存到: {results_file}")
         
-        # 2. 然后进行参数实验
-        from src.parameter_experiments import experiment
-        print("\n第二步: 开始网络参数实验...")
-        results, results_file = experiment()
-        print(f"\n实验结果已保存到: {results_file}")
+        elif args.base:
+            # 只运行基础模型
+            from src.fashion_mnist import train
+            print("\n训练基础模型...")
+            train_losses, train_accs, val_losses, val_accs, test_losses = train(epochs=5)
+            print("\n基础模型训练完成！")
         
-        print("\n所有步骤完成！")
+        else:
+            # 运行完整流程
+            from src.fashion_mnist import train
+            from src.parameter_experiments import experiment
+            
+            print("\n1. 训练基础模型...")
+            train_losses, train_accs, val_losses, val_accs, test_losses = train(epochs=5)
+            print("\n基础模型训练完成！")
+            
+            print("\n2. 运行参数实验...")
+            results, results_file = experiment()
+            print(f"\n实验结果已保存到: {results_file}")
+        
+        print("\n运行完成！")
             
     except ImportError as e:
         print(f"\n错误: 导入模块失败 ({e})")

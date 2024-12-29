@@ -109,10 +109,7 @@ print(f"使用设备: {device}")
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
-        # 一个卷积层
         self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
-        self.pool = nn.MaxPool2d(2, 2)
-        # 第二个卷积层
         self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
         # 全连层
         self.fc1 = nn.Linear(64 * 4 * 4, 512)
@@ -137,7 +134,7 @@ print(model)
 
 # 在test函数前添加evaluate函数
 def evaluate(model, data_loader):
-    """评估模型在给定数据集上的性能"""
+    """评估模型性能"""
     model.eval()
     total_loss = 0
     correct = 0
@@ -159,36 +156,16 @@ def evaluate(model, data_loader):
     accuracy = correct / total
     return avg_loss, accuracy
 
-class EarlyStopping:
-    """早停机制"""
-    def __init__(self, patience=3, min_delta=0.001):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.counter = 0
-
 def train(epochs=5):
-    """训练函数"""
+    """训练基础模型"""
     train_losses = []
     train_accs = []
     val_losses = []
     val_accs = []
     test_losses = []
     
-    # 初始化早停
-    early_stopping = EarlyStopping(patience=3, min_delta=0.001)
+    # 添加学习率调度器
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     
     for epoch in range(epochs):
         model.train()
@@ -200,7 +177,7 @@ def train(epochs=5):
         
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)  # 将数据移到设备
+            inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             
             outputs = model(inputs)
@@ -227,7 +204,7 @@ def train(epochs=5):
         train_losses.append(epoch_loss / batch_count)
         train_accs.append(correct / total)
         
-        # ��证集评估
+        # 验证集评估
         val_loss, val_acc = evaluate(model, val_loader)
         val_losses.append(val_loss)
         val_accs.append(val_acc)
@@ -236,18 +213,15 @@ def train(epochs=5):
         test_loss, test_acc = evaluate(model, test_loader)
         test_losses.append(test_loss)
         
+        # 更新学习率
+        scheduler.step(val_loss)
+        
         print(f'Epoch {epoch + 1} - '
               f'Train Loss: {train_losses[-1]:.3f}, '
               f'Val Loss: {val_loss:.3f}, '
               f'Test Loss: {test_loss:.3f}, '
               f'Train Acc: {train_accs[-1]:.3f}, '
               f'Val Acc: {val_acc:.3f}')
-        
-        # 早停检查
-        early_stopping(val_loss)
-        if early_stopping.early_stop:
-            print(f'Early stopping triggered at epoch {epoch + 1}')
-            break
     
     # 保存训练结果
     save_results(model, train_losses, train_accs, val_losses, val_accs, test_losses)
@@ -255,9 +229,6 @@ def train(epochs=5):
     # 在训练结束后自动生成可视化
     try:
         print("开始生成损失曲线...")
-        print(f"train_losses 长度: {len(train_losses)}")
-        print(f"val_losses 长度: {len(val_losses)}")
-        print(f"test_losses 长度: {len(test_losses)}")
         plot_loss_curves(train_losses, val_losses, test_losses)
         print("损失曲线生成完成")
     except Exception as e:
@@ -268,7 +239,7 @@ def train(epochs=5):
 
 # 在train函数后添加test函数
 def test():
-    """测试函数：评估模型在测试集上的性能"""
+    """测试模型在测试集上的表现"""
     model.eval()
     correct = 0
     total = 0

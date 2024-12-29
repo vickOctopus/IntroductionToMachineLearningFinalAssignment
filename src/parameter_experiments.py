@@ -25,7 +25,7 @@ class BaseCNN(nn.Module):
     def __init__(self, 
                  activation='relu',
                  conv_layers=2,
-                 channels=[32, 64],
+                 channels=[32, 64, 128],  # 修改默认通道配置
                  kernel_size=3):
         super(BaseCNN, self).__init__()
         
@@ -42,13 +42,20 @@ class BaseCNN(nn.Module):
         # 构建卷积层
         layers = []
         in_channels = 1
+        current_size = 28  # 跟踪特征图大小
+        
         for i in range(conv_layers):
-            out_channels = channels[i] if i < len(channels) else channels[-1]
+            out_channels = channels[i]
             layers.extend([
-                nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size//2),
+                # 使用stride=2的卷积代替MaxPool，减少特征图尺寸的过快下降
+                nn.Conv2d(in_channels, out_channels, kernel_size, 
+                         stride=1, padding=kernel_size//2),
+                nn.BatchNorm2d(out_channels),
                 self.activation,
-                nn.MaxPool2d(2, 2)
+                nn.MaxPool2d(2, 2) if current_size > 7 else nn.Identity()  # 控制特征图最小尺寸
             ])
+            if current_size > 7:
+                current_size //= 2
             in_channels = out_channels
         
         self.features = nn.Sequential(*layers)
@@ -59,10 +66,15 @@ class BaseCNN(nn.Module):
             x = self.features(x)
             fc_input = x.view(1, -1).size(1)
         
+        # 根据网络深度调整全连接层大小
+        hidden_size = 512 * conv_layers  # 随层数增加隐藏层大小
+        
         self.classifier = nn.Sequential(
-            nn.Linear(fc_input, 512),
+            nn.Linear(fc_input, hidden_size),
+            nn.BatchNorm1d(hidden_size),
             self.activation,
-            nn.Linear(512, 10)
+            nn.Dropout(0.5),
+            nn.Linear(hidden_size, 10)
         )
 
     def forward(self, x):
@@ -73,12 +85,9 @@ class BaseCNN(nn.Module):
 
 # 实验配置 
 EXPERIMENTS = {
-    'learning_rates': [0.01, 0.001],  # 两种学习率
-    'optimizers': {
-        'Adam': optim.Adam  # 保持使用Adam优化器
-    },
-    'activations': ['relu', 'leakyrelu'],  
-    'conv_layers': [2, 3, 4]  # 三种络深度
+    'learning_rates': [0.01, 0.001],  # 可选学习率: 0.1, 0.01, 0.001 
+    'activations': ['relu', 'leakyrelu'],   # 可选激活函数: relu, leaky_relu, tanh 
+    'conv_layers': [2, 3]      # 可选网络层数: 2, 3, 4 
 }
 
 def calculate_model_complexity(model):
@@ -127,7 +136,7 @@ def calculate_training_efficiency(epoch_times):
 
 class EarlyStopping:
     """早停机制"""
-    def __init__(self, patience=3, min_delta=0.001):
+    def __init__(self, patience=5, min_delta=0.0005):
         self.patience = patience
         self.min_delta = min_delta
         self.counter = 0
@@ -145,7 +154,7 @@ class EarlyStopping:
             self.best_loss = val_loss
             self.counter = 0
 
-def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
+def train_and_evaluate(model, lr=0.001, epochs=10):
     """训练和评估模型"""
     start_time = time.time()
     epoch_times = []
@@ -153,10 +162,11 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
     # 将模型移到GPU
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optimizer(model.parameters(), lr=lr)
+    # 直接使用 Adam 优化器
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     
-    # 初始化早停机制，增加patience
-    early_stopping = EarlyStopping(patience=3, min_delta=0.001)  # 从2增加到3
+    # 添加学习率调度器
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
     
     # 训练
     for epoch in range(epochs):
@@ -166,7 +176,6 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
         batch_count = 0
         
         for i, (inputs, labels) in enumerate(train_loader):
-            # 将数据移��GPU
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -181,11 +190,8 @@ def train_and_evaluate(model, optimizer, lr=0.001, epochs=5):
         epoch_time = time.time() - epoch_start
         epoch_times.append(epoch_time)
         
-        # 早停检查
-        early_stopping(avg_epoch_loss)
-        if early_stopping.early_stop:
-            print(f'Early stopping triggered at epoch {epoch + 1}')
-            break
+        # 更新学习率
+        scheduler.step(avg_epoch_loss)
     
     # 计算训练效率
     training_efficiency = calculate_training_efficiency(epoch_times)
@@ -242,11 +248,9 @@ def experiment():
                     model_name = f"BaseCNN_{activation}_{conv_layers}_{lr}"
                     model = BaseCNN(activation=activation, 
                                   conv_layers=conv_layers,
-                                  channels=[32, 64],
+                                  channels=[32, 64, 128],
                                   kernel_size=3)
-                    result = train_and_evaluate(model, 
-                                              EXPERIMENTS['optimizers']['Adam'], 
-                                              lr=lr)
+                    result = train_and_evaluate(model, lr=lr)
                     results[model_name] = result
                     print(f"实验完成: {model_name}, 准确率: {result['accuracy']:.4f}")
                 except Exception as e:
@@ -258,12 +262,14 @@ def experiment():
         json.dump(results, f, indent=4)
     
     # 进行分析
-    from .analyze import create_performance_table, save_results_table, create_complexity_analysis
-    df_perf = create_performance_table(results)
-    save_results_table(df_perf)
+    from .analyze import create_performance_table, create_complexity_analysis, save_analysis_results
     
+    # 生成性能分析
+    perf_df, perf_analysis = create_performance_table(results)
     # 生成复杂度分析
-    df_complexity = create_complexity_analysis(results)
+    complexity_df = create_complexity_analysis(results)
+    # 保存分析结果
+    save_analysis_results(perf_df, perf_analysis, complexity_df)
     
     return results, results_file
 
@@ -273,7 +279,6 @@ if __name__ == '__main__':
     
     # 打印最终结果摘要
     print("\n最终结果摘要:")
-    for model_name, model_results in results.items():
+    for model_name, result in results.items():  # 修复这里的迭代
         print(f"\n{model_name}:")
-        for lr, result in model_results.items():
-            print(f"  学习率 {lr}: {result['accuracy']:.4f}") 
+        print(f"  准确率: {result['accuracy']:.4f}") 
