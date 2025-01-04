@@ -111,6 +111,7 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=5)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=5)
+        self.pool = nn.MaxPool2d(2, 2)  # 添加池化层
         # 全连层
         self.fc1 = nn.Linear(64 * 4 * 4, 512)
         self.fc2 = nn.Linear(512, 10)
