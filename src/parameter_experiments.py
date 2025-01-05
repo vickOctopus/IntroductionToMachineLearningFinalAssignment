@@ -81,9 +81,9 @@ class BaseCNN(nn.Module):
 
 # 实验配置 
 EXPERIMENTS = {
-    'learning_rates': [0.01, 0.001, 0.0001],  # 学习率
+    'learning_rates': [ 0.01, 0.001],  # 学习率
     'activations': ['relu', 'leakyrelu'],  # 激活函数
-    'conv_layers': [2, 3]  # 网络层数：2层、3层、4层
+    'conv_layers': [2, 3, 4]  # 网络层数：2层、3层、4层
 }
 
 def calculate_model_complexity(model):

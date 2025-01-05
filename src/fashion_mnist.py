@@ -6,11 +6,30 @@ import torch.optim as optim
 import os
 import numpy as np
 import sys
+import random
+from datetime import datetime
 try:
     from src.visualize import plot_loss_curves
 except ImportError:
     print("无法导入 plot_loss_curves 函数，请确保 src/visualize.py 文件存在")
     raise
+
+def set_random_seed(seed=None):
+    """设置随机种子，如果没有提供种子，则使用当前时间生成"""
+    if seed is None:
+        seed = int(datetime.now().timestamp())
+    
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    return seed
+
+# 生成随机种子
+current_seed = set_random_seed()
+print(f"当前使用的随机种子: {current_seed}")
 
 # 更新路径计算
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -64,7 +83,7 @@ val_size = int(0.1 * len(train_dataset))    # 使用10%的数据作为验证集
 train_dataset, val_dataset, _ = torch.utils.data.random_split(
     train_dataset, 
     [train_size, val_size, len(train_dataset) - train_size - val_size],
-    generator=torch.Generator().manual_seed(42)  # 设置随机种子确保可重复性
+    generator=torch.Generator().manual_seed(current_seed)  # 使用动态生成的随机种子
 )
 
 # 创建数据加载器
@@ -159,6 +178,7 @@ def evaluate(model, data_loader):
 
 def train(epochs=5):
     """训练基础模型"""
+    print(f"\n开始训练 - 使用随机种子: {current_seed}")
     train_losses = []
     train_accs = []
     val_losses = []
@@ -176,6 +196,14 @@ def train(epochs=5):
         epoch_loss = 0.0
         batch_count = 0
         
+        # 在每个epoch开始时打乱数据
+        train_loader.dataset.dataset.transform = transforms.Compose([
+            transforms.RandomHorizontalFlip(),  # 随机水平翻转
+            transforms.RandomRotation(10),      # 随机旋转±10度
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))
+        ])
+        
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
@@ -184,6 +212,10 @@ def train(epochs=5):
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
+            
+            # 添加梯度裁剪，防止梯度爆炸
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
             optimizer.step()
             
             running_loss += loss.item()
@@ -202,8 +234,10 @@ def train(epochs=5):
                 running_loss = 0.0
         
         # 每个epoch结束后收集数据
-        train_losses.append(epoch_loss / batch_count)
-        train_accs.append(correct / total)
+        train_loss = epoch_loss / batch_count
+        train_acc = correct / total
+        train_losses.append(train_loss)
+        train_accs.append(train_acc)
         
         # 验证集评估
         val_loss, val_acc = evaluate(model, val_loader)
@@ -218,10 +252,10 @@ def train(epochs=5):
         scheduler.step(val_loss)
         
         print(f'Epoch {epoch + 1} - '
-              f'Train Loss: {train_losses[-1]:.3f}, '
+              f'Train Loss: {train_loss:.3f}, '
               f'Val Loss: {val_loss:.3f}, '
               f'Test Loss: {test_loss:.3f}, '
-              f'Train Acc: {train_accs[-1]:.3f}, '
+              f'Train Acc: {train_acc:.3f}, '
               f'Val Acc: {val_acc:.3f}')
     
     # 保存训练结果
